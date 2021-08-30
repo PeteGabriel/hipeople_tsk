@@ -7,7 +7,6 @@ import (
 	"hipeople_task/pkg/models/responses"
 	"net/http"
 	"regexp"
-	"strconv"
 	"strings"
 )
 
@@ -56,7 +55,7 @@ func (a App) GetImage() http.Handler {
 		}
 
 		//check info from url
-		if match, _ := regexp.MatchString(`/api/image/\d+$`, r.URL.Path); !match {
+		if match, _ := regexp.MatchString(`/api/image/[0-9a-z]+$`, r.URL.Path); !match {
 			//TODO handle not match flow with JSON error
 			w.WriteHeader(http.StatusNotFound)
 			_, err := w.Write([]byte("image not found"))
@@ -68,18 +67,11 @@ func (a App) GetImage() http.Handler {
 		}
 
 		parts := strings.Split(r.URL.Path, "/")
-		id, err := strconv.Atoi(parts[3])
-		if err != nil {
-			fmt.Println("input invalid in url path")
-			id = -1
-		}
+		imgId := parts[3]
 
-		//TODO send image
-		_, err = w.Write([]byte(fmt.Sprintf("%s %d", "Get Image with id ", id)))
-		if err != nil {
-			//TODO add to logs
-			return
-		}
+		content, _ := a.imgService.GetImage(imgId)
+		w.Write([]byte(content))
+
 	})
 }
 
