@@ -30,17 +30,36 @@ Size of image is limited to 1MB.
 
 * **Data Params**
 
-  None
+  * **Multipart Form:** uploadfile <br />
+    **Content:** a binary file (up to 1MB)
+
+* **Headers**
+
+  * **Content-Type:** 'multipart/form-data;'
 
 * **Success Response:**
 
-    * **Code:** 200 <br />
-      **Content:** `{ id : 12 }`
+    * **Code:** 201 <br />
+      **Content-Type:** text/plain; charset=utf-8 <br />
+      **Content:** `{
+      "image_id": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }`
 
 * **Error Response:**
 
     * **Code:** 404 NOT FOUND <br />
       **Content:** `{ error : "User doesn't exist" }`
+
+
+Example in cURL:
+
+```
+curl --request POST \
+--url http://localhost:4002/api/image \
+--header 'Content-Type: multipart/form-data;' \
+--form uploadfile=@/downloads/golang.png
+```
+
 
 
 ### Get an image
