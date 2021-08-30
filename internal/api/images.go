@@ -37,15 +37,13 @@ func (a App) Upload() http.Handler {
 			panic(upErr)
 		}
 
-
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
-
 		res, err := json.Marshal(responses.UploadResponse{ImageId: imgId})
 		if err != nil {
 			// handle error
 		}
-		w.Header().Set("Content-Type", "application/json")
-		w.Write(res)
+		w.Write(res) //todo handle error
 	})
 }
 
