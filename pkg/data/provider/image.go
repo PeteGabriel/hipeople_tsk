@@ -19,7 +19,7 @@ const RelativePath = "./static/images/"
 //entities that make use of it.
 type IImageDataProvider interface {
 	SaveImage(img *models.ImageFile) string
-	GetImage(imgId string) string
+	GetImage(imgId string) (string, error)
 }
 
 type ImageDataProvider struct {
@@ -39,24 +39,30 @@ func New() IImageDataProvider {
 //It returns an identifier that can be used to retrieve the image.
 func (idp ImageDataProvider) SaveImage(img *models.ImageFile) string {
 	//TODO return errors
-	//Step 1 - rename file
-	img.Header.Filename = fmt.Sprintf("%d_%s", time.Now().UnixMilli(), img.Header.Filename)
-	fP := RelativePath + img.Header.Filename
-	//TODO creation of directories must be checked/created at the beginning of program.
-	f, err := os.OpenFile(fP, os.O_WRONLY|os.O_CREATE, 0666)
-	if err != nil {
-		fmt.Println(err)
-		return ""
+	//Step 1 - rename file and store it
+	if _, err := saveImage(img); err != nil {
+		panic(err)
 	}
-	defer f.Close()
-	io.Copy(f, img.Content)
-
 	//Step 2 - Create ImageID
 	imageId := createImageId(img)
 	//map id to image
 	idp.dataSource[imageId] = img.Header.Filename
 
 	return imageId
+}
+
+func saveImage(img *models.ImageFile) (bool, error) {
+	img.Header.Filename = fmt.Sprintf("%d_%s", time.Now().UnixMilli(), img.Header.Filename)
+	fP := RelativePath + img.Header.Filename
+	//TODO creation of directories must be checked/created at the beginning of program.
+	f, err := os.OpenFile(fP, os.O_WRONLY|os.O_CREATE, 0666)
+	if err != nil {
+		fmt.Println(err)
+		return false, err
+	}
+	defer f.Close()
+	io.Copy(f, img.Content)
+	return true, nil
 }
 
 func createImageId(img *models.ImageFile) string {
@@ -69,14 +75,18 @@ func createImageId(img *models.ImageFile) string {
 	hashInBytes := hsr.Sum(nil)[:32] //amount of bytes produces by sha256
 	return hex.EncodeToString(hashInBytes)
 }
-
-func (idp ImageDataProvider) GetImage(imgId string) string {
+//GetImage by given image ID. Check if given ID is mapped to any file name.
+//If so, convert the contents to base64 and return it.
+//If not, an error is returned saying that image could not be found.
+func (idp ImageDataProvider) GetImage(imgId string) (string, error) {
 	imgName := idp.dataSource[imgId]
+
+	//todo handle image name not found
 
 	bytes, err := ioutil.ReadFile("./static/images/" + imgName)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	return base64.StdEncoding.EncodeToString(bytes)
+	return base64.StdEncoding.EncodeToString(bytes), nil
 }

@@ -31,6 +31,10 @@ func (i ImageService) UploadImage(img *models.ImageFile) (string, *models.Error)
 
 //GetImage by image id.
 func (i ImageService) GetImage(id string) (string, *models.Error) {
-	return i.provider.GetImage(id), nil
-	//TODO handle errors and wrapping of them
+	img, err := i.provider.GetImage(id)
+	if err != nil {
+		//todo handle this
+	}
+
+	return img, nil
 }
