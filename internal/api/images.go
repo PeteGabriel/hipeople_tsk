@@ -1,7 +1,10 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
+	"hipeople_task/pkg/models"
+	"hipeople_task/pkg/models/responses"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -14,13 +17,46 @@ import (
 //Upload an image
 func (a App) Upload() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
 
+		r.ParseMultipartForm(32 << 20)
+		file, handler, err := r.FormFile("uploadfile")
+		if err != nil {
+			//TODO handle better this error
+			fmt.Println(err)
+			return
+		}
+		defer file.Close()
+
+		imgId, upErr := a.imgService.UploadImage(models.NewImageFile(handler, file))
+		if upErr != nil {
+			//TODO Handle this
+			panic(upErr)
+		}
+
+
+		w.WriteHeader(http.StatusCreated)
+
+		res, err := json.Marshal(responses.UploadResponse{ImageId: imgId})
+		if err != nil {
+			// handle error
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(res)
 	})
 }
 
 //GetImage handler function to retrieve an image for a given ID.
 func (a App) GetImage() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "GET" {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+
 		//check info from url
 		if match, _ := regexp.MatchString(`/api/image/\d+$`, r.URL.Path); !match {
 			//TODO handle not match flow with JSON error

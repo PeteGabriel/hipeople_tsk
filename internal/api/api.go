@@ -3,16 +3,19 @@ package api
 import (
 	"flag"
 	"fmt"
+	"hipeople_task/pkg/services"
 	"log"
 	"net/http"
 )
 
 type App struct {
+	imgService services.IImageService
 	addr *string
 }
 
 func New() *App {
 	return &App{
+		imgService: services.NewImageService(),
 		addr: flag.String("addr", ":4002", "http service address"),
 	}
 }
@@ -23,9 +26,6 @@ func (a App) configureRoutes() {
 	//get image route
 	http.Handle("/api/image/", a.GetImage())
 }
-
-//TODO write an handler that redirects to upload or getImage handlers.
-//keep it "local" because it has no interest outside this function.
 
 func (a App) Start() {
 	a.configureRoutes()
