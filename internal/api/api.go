@@ -15,7 +15,7 @@ type App struct {
 
 func New() *App {
 	return &App{
-		imgService: services.NewImageService(),
+		imgService: services.New(),
 		addr: flag.String("addr", ":4002", "http service address"),
 	}
 }

@@ -11,8 +11,6 @@ import (
 )
 
 
-
-
 //Upload an image
 func (a App) Upload() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -46,7 +44,7 @@ func (a App) Upload() http.Handler {
 	})
 }
 
-//GetImage handler function to retrieve an image for a given ID.
+//GetImage retrieves an image for a given ID.
 func (a App) GetImage() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "GET" {
