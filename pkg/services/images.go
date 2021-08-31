@@ -1,6 +1,7 @@
 package services
 
 import (
+	"fmt"
 	"hipeople_task/pkg/data/provider"
 	"hipeople_task/pkg/models"
 )
@@ -33,7 +34,21 @@ func (i ImageService) UploadImage(img *models.ImageFile) (string, *models.Error)
 func (i ImageService) GetImage(id string) (string, *models.Error) {
 	img, err := i.provider.GetImage(id)
 	if err != nil {
-		//todo handle this
+
+		if err.Error() == provider.ImageNotFoundErr {
+			return "", &models.Error{
+				Error:   err,
+				Message: fmt.Sprintf("%s %s - %s", "error getting image with id", id, err.Error()),
+				Code:    404,
+			}
+		}
+
+		return "", &models.Error{
+			Error:   err,
+			Message: fmt.Sprintf("%s %s", "error getting image with id", id),
+			Code:    500,
+			Name:    models.ServerErr,
+		}
 	}
 
 	return img, nil

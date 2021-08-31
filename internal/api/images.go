@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"hipeople_task/pkg/models"
 	"hipeople_task/pkg/models/responses"
+	"log"
 	"net/http"
 	"regexp"
 	"strings"
 )
-
 
 //Upload an image
 func (a App) Upload() http.Handler {
@@ -52,24 +52,52 @@ func (a App) GetImage() http.Handler {
 			return
 		}
 
-		//check info from url
+		//validate info coming from the url path
 		if match, _ := regexp.MatchString(`/api/image/[0-9a-z]+$`, r.URL.Path); !match {
-			//TODO handle not match flow with JSON error
+			log.Println("Pattern not matched. Image not found.")
+			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusNotFound)
-			_, err := w.Write([]byte("image not found"))
-			if err != nil {
-				//TODO add to logs
-				return
+			notFoundImgErr := models.Error{
+				Message: "image not found",
+				Code: http.StatusNotFound,
 			}
+			res, err := json.Marshal(notFoundImgErr)
+			if err != nil {
+				// TODO handle error
+			}
+			w.Write(res) //todo handle error
 			return
 		}
 
 		parts := strings.Split(r.URL.Path, "/")
-		imgId := parts[3]
+		imgId := parts[3] //grab the imageID
 
-		content, _ := a.imgService.GetImage(imgId)
-		w.Write([]byte(content))
+		content, err := a.imgService.GetImage(imgId)
+		if err != nil {
+			if err.Name == models.ServerErr {
+				log.Println(fmt.Sprintf("%s - %d - %s", err.Name, err.Code, err.Message))
+				w.WriteHeader(http.StatusInternalServerError)
+				w.Write([]byte{})
+				return
+			}
+
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusNotFound)
+			res, err := json.Marshal(err)
+			if err != nil {
+				// handle error
+			}
+			w.Write(res) //todo handle error
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		res, marshalErr := json.Marshal(responses.GetImageResponse{Image: content})
+		if marshalErr != nil {
+			// handle error
+		}
+		w.Write(res) //todo handle error
 
 	})
 }
-
