@@ -1,8 +1,8 @@
 package api
 
 import (
-	"flag"
 	"fmt"
+	"hipeople_task/pkg/config"
 	"hipeople_task/pkg/services"
 	"log"
 	"net/http"
@@ -10,13 +10,13 @@ import (
 
 type App struct {
 	imgService services.IImageService
-	addr *string
+	settings *config.Settings
 }
 
-func New() *App {
+func New(cfg *config.Settings) *App {
 	return &App{
 		imgService: services.New(),
-		addr: flag.String("addr", ":4002", "http service address"),
+		settings: cfg,
 	}
 }
 
@@ -30,9 +30,9 @@ func (a App) configureRoutes() {
 func (a App) Start() {
 	a.configureRoutes()
 
-	err := http.ListenAndServe(*a.addr, nil)
+	err := http.ListenAndServe(":" + a.settings.Port, nil)
 	if err != nil {
 		log.Fatal("error initiating web server:", err)
 	}
-	fmt.Println("Listening at port 4002")
+	fmt.Printf("%s %s\n", "Listening at port", a.settings.Port)
 }
