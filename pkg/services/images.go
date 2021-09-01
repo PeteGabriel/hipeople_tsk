@@ -26,7 +26,15 @@ func New() IImageService {
 
 //UploadImage uploads an image described by the image file given as parameter.
 func (i ImageService) UploadImage(img *models.ImageFile) (string, *models.Error) {
-	imgId := i.provider.SaveImage(img)
+	imgId, err := i.provider.SaveImage(img)
+	if err != nil {
+		return "", &models.Error{
+			Error:   err,
+			Message: fmt.Sprintf("%s %s", "error saving image", img.Header.Filename),
+			Code:    500,
+			Name:    models.ServerErr,
+		}
+	}
 	return imgId, nil
 }
 

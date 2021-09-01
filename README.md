@@ -1,6 +1,6 @@
 # HiPeople Technical Task
 
-A REST API that allows user to upload images and access them later.
+A web API that allows users to upload images and access them later. 
 
 
 
@@ -10,7 +10,6 @@ Documentation on the entry points of this web API.
 
 ### Upload an image
 
----
 
 Upload an image. An identifier is returned to be used later on when retrieving the image. 
 Size of image is limited to 1MB.
@@ -51,7 +50,7 @@ Size of image is limited to 1MB.
       **Content:** `{ error : "User doesn't exist" }`
 
 
-Example in cURL:
+Example using cURL:
 
 ```
 curl --request POST \
@@ -64,7 +63,6 @@ curl --request POST \
 
 ### Get an image
 
----
 
 Get an image previously uploaded. The user should use the identifier given when the upload finished.
 
@@ -93,4 +91,33 @@ Get an image previously uploaded. The user should use the identifier given when 
 * **Error Response:**
 
     * **Code:** 404 NOT FOUND <br />
-      **Content:** `{ error : "User doesn't exist" }`
+    **Content-Type:** application/problem+json <br />
+      **Content:** <br /> 
+      ```
+      {
+        "title": "image not found",
+        "status": 404,
+        "detail": "error getting image with id 213124125235325 - image not found",
+        "instance": "/api/image/213124125235325"
+      }
+      ```
+
+
+Example using cURL:
+
+```
+curl --request GET \
+  --url http://localhost:4002/api/image/23d56535b3ae661fd530f5a594117d57b04280c3ceb7144bffb9f9813e89ca5d
+```
+
+
+
+## how to run the project:
+
+Using the makefile:
+
+``` make run ```
+
+Using the Dockerfile:
+
+``` docker build --tag hipeople_tsk . && docker run -p 4002:4002 hipeople_tsk ```

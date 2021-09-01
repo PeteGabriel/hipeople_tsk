@@ -20,7 +20,7 @@ const (
 //IImageDataProvider represents the contract this provider gives to all
 //entities that make use of it.
 type IImageDataProvider interface {
-	SaveImage(img *models.ImageFile) string
+	SaveImage(img *models.ImageFile) (string, error)
 	GetImage(imgId string) (string, error)
 }
 
@@ -38,27 +38,28 @@ func New() IImageDataProvider {
 //SaveImage saves the image file given as parameter for retrieval later on.
 //It renames the file to allow duplicates to be uploaded at any given time.
 //It returns an identifier that can be used to retrieve the image.
-func (idp ImageDataProvider) SaveImage(img *models.ImageFile) string {
+func (idp ImageDataProvider) SaveImage(img *models.ImageFile) (string, error) {
 	//TODO return errors
 	//Step 1 - rename file and store it
 	if _, err := saveImage(img); err != nil {
-		panic(err)
+		log.Println("error saving image", err)
+		return "", err
 	}
 	//Step 2 - Create ImageID
 	imageId := createImageId(img)
 	//map id to image
 	idp.dataSource[imageId] = img.Header.Filename
 
-	return imageId
+	return imageId, nil
 }
 
 func saveImage(img *models.ImageFile) (bool, error) {
 	img.Header.Filename = fmt.Sprintf("%d_%s", time.Now().UnixMilli(), img.Header.Filename)
 	fP := relativePath + img.Header.Filename
-	//TODO creation of directories must be checked/created at the beginning of program.
+
 	f, err := os.OpenFile(fP, os.O_WRONLY|os.O_CREATE, 0666)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return false, err
 	}
 	defer f.Close()
