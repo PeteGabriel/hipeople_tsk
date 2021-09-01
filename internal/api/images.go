@@ -11,6 +11,11 @@ import (
 	"strings"
 )
 
+const (
+	JsonMediaType        = "application/json"
+	ProblemJsonMediaType = "application/problem+json"
+)
+
 //Upload an image
 func (a App) Upload() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -34,7 +39,7 @@ func (a App) Upload() http.Handler {
 			panic(upErr)
 		}
 
-		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Content-Type", JsonMediaType)
 		w.WriteHeader(http.StatusCreated)
 		res, err := json.Marshal(responses.UploadResponse{ImageId: imgId})
 		if err != nil {
@@ -55,13 +60,15 @@ func (a App) GetImage() http.Handler {
 		//validate info coming from the url path
 		if match, _ := regexp.MatchString(`/api/image/[0-9a-z]+$`, r.URL.Path); !match {
 			log.Println("Pattern not matched. Image not found.")
-			w.Header().Set("Content-Type", "application/json")
+
+			w.Header().Set("Content-Type", ProblemJsonMediaType)
 			w.WriteHeader(http.StatusNotFound)
-			notFoundImgErr := models.Error{
-				Message: "image not found",
-				Code: http.StatusNotFound,
+			ptrnErr := responses.ErrProblem {
+				Title:    "image not found",
+				Status:   http.StatusNotFound,
+				Instance: r.URL.Path,
 			}
-			res, err := json.Marshal(notFoundImgErr)
+			res, err := json.Marshal(ptrnErr)
 			if err != nil {
 				// TODO handle error
 			}
@@ -81,9 +88,15 @@ func (a App) GetImage() http.Handler {
 				return
 			}
 
-			w.Header().Set("Content-Type", "application/json")
+			w.Header().Set("Content-Type", ProblemJsonMediaType)
 			w.WriteHeader(http.StatusNotFound)
-			res, err := json.Marshal(err)
+			errProbRes := responses.ErrProblem {
+				Title:    "image not found",
+				Detail:   err.Message,
+				Status:   http.StatusNotFound,
+				Instance: r.URL.Path,
+			}
+			res, err := json.Marshal(errProbRes)
 			if err != nil {
 				// handle error
 			}
@@ -91,7 +104,7 @@ func (a App) GetImage() http.Handler {
 			return
 		}
 
-		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Content-Type", JsonMediaType)
 		w.WriteHeader(http.StatusCreated)
 		res, marshalErr := json.Marshal(responses.GetImageResponse{Image: content})
 		if marshalErr != nil {
