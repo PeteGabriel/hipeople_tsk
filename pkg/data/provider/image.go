@@ -14,9 +14,10 @@ import (
 )
 
 const (
-	relativePath = "./static/images/"
-	ImageNotFoundErr = "image not found"
+	relativePath     = "./static/images/"
+	ImageNotFoundErr = "image not found in storage"
 )
+
 //IImageDataProvider represents the contract this provider gives to all
 //entities that make use of it.
 type IImageDataProvider interface {
@@ -28,25 +29,27 @@ type ImageDataProvider struct {
 	dataSource map[string]string //[imageId] -> image name
 }
 
-//New creates a new instance of IImageDataProvider
-func New() IImageDataProvider {
+//NewImageProvider creates a new instance of IImageDataProvider
+func NewImageProvider() IImageDataProvider {
 	return &ImageDataProvider{
 		dataSource: make(map[string]string),
 	}
 }
 
 //SaveImage saves the image file given as parameter for retrieval later on.
-//It renames the file to allow duplicates to be uploaded at any given time.
+//Renames the file to allow duplicates to be uploaded at any given time.
 //It returns an identifier that can be used to retrieve the image.
 func (idp ImageDataProvider) SaveImage(img *models.ImageFile) (string, error) {
-	//TODO return errors
-	//Step 1 - rename file and store it
+	//rename file and store it
 	if _, err := saveImage(img); err != nil {
-		log.Println("error saving image", err)
 		return "", err
 	}
-	//Step 2 - Create ImageID
-	imageId := createImageId(img)
+	//create an ImageID
+	imageId, err := createImageId(img)
+	if err != nil {
+		return "", err
+	}
+
 	//map id to image
 	idp.dataSource[imageId] = img.Header.Filename
 
@@ -55,27 +58,33 @@ func (idp ImageDataProvider) SaveImage(img *models.ImageFile) (string, error) {
 
 func saveImage(img *models.ImageFile) (bool, error) {
 	img.Header.Filename = fmt.Sprintf("%d_%s", time.Now().UnixMilli(), img.Header.Filename)
-	fP := relativePath + img.Header.Filename
+	rename := relativePath + img.Header.Filename
 
-	f, err := os.OpenFile(fP, os.O_WRONLY|os.O_CREATE, 0666)
+	f, err := os.OpenFile(rename, os.O_WRONLY|os.O_CREATE, 0666) // read&write mode
 	if err != nil {
-		log.Println(err)
+		log.Println("error saving image in data provider", err)
 		return false, err
 	}
 	defer f.Close()
-	io.Copy(f, img.Content)
+	if _, err = io.Copy(f, img.Content); err != nil {
+		log.Println("error saving image in data provider", err)
+		return false, err
+	}
 	return true, nil
 }
 
-func createImageId(img *models.ImageFile) string {
-	hsr := sha256.New()
-	if _, err := io.Copy(hsr, img.Content); err != nil {
-		log.Fatal(err)
-		//todo send error above
+func createImageId(img *models.ImageFile) (string, error) {
+	hashFn := sha256.New()
+	if _, err := io.Copy(hashFn, img.Content); err != nil {
+		log.Println("error hashing image", err)
+		return "", err
 	}
-	hsr.Write([]byte(img.Header.Filename)) //add the file name to add more entropy
-	hashInBytes := hsr.Sum(nil)[:32]       //amount of bytes produces by sha256
-	return hex.EncodeToString(hashInBytes)
+	if _, err := hashFn.Write([]byte(img.Header.Filename)); err != nil { //add the file name to add more entropy
+		log.Println("error hashing image", err)
+		return "", err
+	}
+	hashInBytes := hashFn.Sum(nil)[:32] //32 is the amount of bytes produces by sha256
+	return hex.EncodeToString(hashInBytes), nil
 }
 
 //GetImage by given image ID. Check if given ID is mapped to any file name.
@@ -86,13 +95,13 @@ func (idp ImageDataProvider) GetImage(imgId string) (string, error) {
 
 	if imgName == "" {
 		err := fmt.Errorf("%s", ImageNotFoundErr)
-		log.Println(err.Error())
+		log.Println(err)
 		return "", err
 	}
 
 	bytes, err := ioutil.ReadFile(relativePath + imgName)
 	if err != nil {
-		log.Println(err.Error())
+		log.Println(err)
 		return "", err
 	}
 

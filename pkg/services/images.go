@@ -20,7 +20,7 @@ type ImageService struct {
 //New creates a new instance of IImageService
 func New() IImageService {
 	return &ImageService{
-		provider: provider.New(),
+		provider: provider.NewImageProvider(),
 	}
 }
 
