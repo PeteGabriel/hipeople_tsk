@@ -29,39 +29,25 @@ func (a App) Upload() http.Handler {
 		r.Body = http.MaxBytesReader(w, r.Body, fileSizeLimit) //limit the size of the request body
 		if err := r.ParseMultipartForm(fileSizeLimit); err != nil {
 			log.Println("file bigger than 1MB: ", err)
-			w.Header().Set(mediaType, problemJsonMediaType)
-			w.WriteHeader(http.StatusBadRequest)
 			probJson := responses.ErrProblem{
 				Title:    "image not uploaded",
 				Detail:   "Image not uploaded. File is bigger than 1MB.",
 				Status:   http.StatusBadRequest,
 				Instance: r.URL.Path,
 			}
-
-			res, err := json.Marshal(probJson)
-			if err != nil {
-				// TODO handle error
-			}
-			w.Write(res) //todo handle error
+			writeProblemJson(w, probJson)
 			return
 		}
 		file, handler, err := r.FormFile("uploadfile")
 		if err != nil {
 			log.Println(fmt.Sprintf("%s - %s", "error receiving file to upload", err.Error()))
-
-			w.Header().Set(mediaType, problemJsonMediaType)
-			w.WriteHeader(http.StatusBadRequest)
 			notReceivedImgErr := responses.ErrProblem{
 				Title:    "image not received",
 				Detail:   "An image must be provided.",
 				Status:   http.StatusBadRequest,
 				Instance: r.URL.Path,
 			}
-			res, err := json.Marshal(notReceivedImgErr)
-			if err != nil {
-				// TODO handle error
-			}
-			w.Write(res) //todo handle error
+			writeProblemJson(w, notReceivedImgErr)
 			return
 		}
 		defer file.Close()
@@ -73,8 +59,6 @@ func (a App) Upload() http.Handler {
 
 			var probJson responses.ErrProblem
 			if upErr.Name == domain.ServerErr {
-				w.Header().Set(mediaType, problemJsonMediaType)
-				w.WriteHeader(http.StatusInternalServerError)
 				probJson = responses.ErrProblem{
 					Title:    "image not uploaded",
 					Detail:   upErr.Message,
@@ -83,8 +67,6 @@ func (a App) Upload() http.Handler {
 				}
 			} else {
 				//TODO check if theres another possibility than ServerSideError
-				w.Header().Set(mediaType, problemJsonMediaType)
-				w.WriteHeader(http.StatusBadRequest)
 				probJson = responses.ErrProblem{
 					Title:    "image not uploaded",
 					Detail:   upErr.Message,
@@ -93,11 +75,7 @@ func (a App) Upload() http.Handler {
 				}
 			}
 
-			res, err := json.Marshal(probJson)
-			if err != nil {
-				// TODO handle error
-			}
-			w.Write(res) //todo handle error
+			writeProblemJson(w, probJson)
 			return
 		}
 
@@ -122,19 +100,12 @@ func (a App) GetImage() http.Handler {
 		//validate info coming from the url path
 		if match, _ := regexp.MatchString(`/api/image/[0-9a-z]+$`, r.URL.Path); !match {
 			log.Println("Pattern not matched. Image not found.")
-
-			w.Header().Set("Content-Type", problemJsonMediaType)
-			w.WriteHeader(http.StatusNotFound)
 			ptrnErr := responses.ErrProblem{
 				Title:    "image not found",
 				Status:   http.StatusNotFound,
 				Instance: r.URL.Path,
 			}
-			res, err := json.Marshal(ptrnErr)
-			if err != nil {
-				// TODO handle error
-			}
-			w.Write(res) //todo handle error
+			writeProblemJson(w, ptrnErr)
 			return
 		}
 
@@ -146,23 +117,17 @@ func (a App) GetImage() http.Handler {
 			if err.Name == domain.ServerErr {
 				log.Println(fmt.Sprintf("%s - %d - %s", err.Name, err.Code, err.Message))
 				w.WriteHeader(http.StatusInternalServerError)
-				w.Write([]byte{})
+				w.Write([]byte{}) //TODO recheck this
 				return
 			}
 
-			w.Header().Set(mediaType, problemJsonMediaType)
-			w.WriteHeader(http.StatusNotFound)
 			errProbRes := responses.ErrProblem{
 				Title:    "image not found",
 				Detail:   err.Message,
 				Status:   http.StatusNotFound,
 				Instance: r.URL.Path,
 			}
-			res, err := json.Marshal(errProbRes)
-			if err != nil {
-				// handle error
-			}
-			w.Write(res) //todo handle error
+			writeProblemJson(w, errProbRes)
 			return
 		}
 
@@ -173,6 +138,16 @@ func (a App) GetImage() http.Handler {
 			// handle error
 		}
 		w.Write(res) //todo handle error
-
 	})
+}
+
+func writeProblemJson(w http.ResponseWriter, prob responses.ErrProblem) {
+	w.Header().Set(mediaType, problemJsonMediaType)
+	w.WriteHeader(prob.Status)
+
+	res, err := json.Marshal(prob)
+	if err != nil {
+		// TODO handle error
+	}
+	w.Write(res) //todo handle error
 }
