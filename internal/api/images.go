@@ -3,7 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
-	"hipeople_task/pkg/models"
+	"hipeople_task/pkg/domain"
 	"hipeople_task/pkg/models/responses"
 	"log"
 	"net/http"
@@ -14,7 +14,8 @@ import (
 const (
 	jsonMediaType        = "application/json"
 	problemJsonMediaType = "application/problem+json"
-	mediaType = "Content-Type"
+	mediaType            = "Content-Type"
+	fileSizeLimit        = 1024 * 1024
 )
 
 //Upload an image
@@ -25,7 +26,25 @@ func (a App) Upload() http.Handler {
 			return
 		}
 
-		r.ParseMultipartForm(32 << 20)
+		r.Body = http.MaxBytesReader(w, r.Body, fileSizeLimit) //limit the size of the request body
+		if err := r.ParseMultipartForm(fileSizeLimit); err != nil {
+			log.Println("file bigger than 1MB: ", err)
+			w.Header().Set(mediaType, problemJsonMediaType)
+			w.WriteHeader(http.StatusBadRequest)
+			probJson := responses.ErrProblem{
+				Title:    "image not uploaded",
+				Detail:   "Image not uploaded. File is bigger than 1MB.",
+				Status:   http.StatusBadRequest,
+				Instance: r.URL.Path,
+			}
+
+			res, err := json.Marshal(probJson)
+			if err != nil {
+				// TODO handle error
+			}
+			w.Write(res) //todo handle error
+			return
+		}
 		file, handler, err := r.FormFile("uploadfile")
 		if err != nil {
 			log.Println(fmt.Sprintf("%s - %s", "error receiving file to upload", err.Error()))
@@ -34,7 +53,7 @@ func (a App) Upload() http.Handler {
 			w.WriteHeader(http.StatusBadRequest)
 			notReceivedImgErr := responses.ErrProblem{
 				Title:    "image not received",
-				Detail:   "an image must be provided",
+				Detail:   "An image must be provided.",
 				Status:   http.StatusBadRequest,
 				Instance: r.URL.Path,
 			}
@@ -47,13 +66,13 @@ func (a App) Upload() http.Handler {
 		}
 		defer file.Close()
 
-		imgId, upErr := a.imgService.UploadImage(models.NewImageFile(handler, file))
+		imgId, upErr := a.imgService.UploadImage(domain.NewImageFile(handler, file))
 		if upErr != nil {
 			log.Println(fmt.Sprintf("%s - %s", "error uploading received file", upErr.Error.Error()))
 			log.Println(fmt.Sprintf("%s - %d - %s", upErr.Name, upErr.Code, upErr.Message))
 
 			var probJson responses.ErrProblem
-			if upErr.Name == models.ServerErr {
+			if upErr.Name == domain.ServerErr {
 				w.Header().Set(mediaType, problemJsonMediaType)
 				w.WriteHeader(http.StatusInternalServerError)
 				probJson = responses.ErrProblem{
@@ -124,7 +143,7 @@ func (a App) GetImage() http.Handler {
 
 		content, err := a.imgService.GetImage(imgId)
 		if err != nil {
-			if err.Name == models.ServerErr {
+			if err.Name == domain.ServerErr {
 				log.Println(fmt.Sprintf("%s - %d - %s", err.Name, err.Code, err.Message))
 				w.WriteHeader(http.StatusInternalServerError)
 				w.Write([]byte{})

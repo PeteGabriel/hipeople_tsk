@@ -5,7 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
-	"hipeople_task/pkg/models"
+	"hipeople_task/pkg/domain"
 	"io"
 	"io/ioutil"
 	"log"
@@ -21,7 +21,7 @@ const (
 //IImageDataProvider represents the contract this provider gives to all
 //entities that make use of it.
 type IImageDataProvider interface {
-	SaveImage(img *models.ImageFile) (string, error)
+	SaveImage(img *domain.ImageFile) (string, error)
 	GetImage(imgId string) (string, error)
 }
 
@@ -39,7 +39,7 @@ func NewImageProvider() IImageDataProvider {
 //SaveImage saves the image file given as parameter for retrieval later on.
 //Renames the file to allow duplicates to be uploaded at any given time.
 //It returns an identifier that can be used to retrieve the image.
-func (idp ImageDataProvider) SaveImage(img *models.ImageFile) (string, error) {
+func (idp ImageDataProvider) SaveImage(img *domain.ImageFile) (string, error) {
 	//rename file and store it
 	if _, err := saveImage(img); err != nil {
 		return "", err
@@ -56,7 +56,7 @@ func (idp ImageDataProvider) SaveImage(img *models.ImageFile) (string, error) {
 	return imageId, nil
 }
 
-func saveImage(img *models.ImageFile) (bool, error) {
+func saveImage(img *domain.ImageFile) (bool, error) {
 	img.Header.Filename = fmt.Sprintf("%d_%s", time.Now().UnixMilli(), img.Header.Filename)
 	rename := relativePath + img.Header.Filename
 
@@ -73,7 +73,7 @@ func saveImage(img *models.ImageFile) (bool, error) {
 	return true, nil
 }
 
-func createImageId(img *models.ImageFile) (string, error) {
+func createImageId(img *domain.ImageFile) (string, error) {
 	hashFn := sha256.New()
 	if _, err := io.Copy(hashFn, img.Content); err != nil {
 		log.Println("error hashing image", err)

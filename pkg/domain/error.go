@@ -1,4 +1,4 @@
-package models
+package domain
 
 const ServerErr = "SERVER_ERROR"
 

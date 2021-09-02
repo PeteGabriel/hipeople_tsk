@@ -3,14 +3,14 @@ package services
 import (
 	"fmt"
 	"hipeople_task/pkg/data/provider"
-	"hipeople_task/pkg/models"
+	"hipeople_task/pkg/domain"
 )
 
 //IImageService represents the contract this service gives to all
 //entities that make use of it.
 type IImageService interface {
-	UploadImage(img *models.ImageFile) (string, *models.Error)
-	GetImage(id string) (string, *models.Error)
+	UploadImage(img *domain.ImageFile) (string, *domain.Error)
+	GetImage(id string) (string, *domain.Error)
 }
 
 type ImageService struct {
@@ -25,37 +25,37 @@ func New() IImageService {
 }
 
 //UploadImage uploads an image described by the image file given as parameter.
-func (i ImageService) UploadImage(img *models.ImageFile) (string, *models.Error) {
+func (i ImageService) UploadImage(img *domain.ImageFile) (string, *domain.Error) {
 	imgId, err := i.provider.SaveImage(img)
 	if err != nil {
-		return "", &models.Error{
+		return "", &domain.Error{
 			Error:   err,
 			Message: fmt.Sprintf("%s %s", "error saving image", img.Header.Filename),
 			Code:    500,
-			Name:    models.ServerErr,
+			Name:    domain.ServerErr,
 		}
 	}
 	return imgId, nil
 }
 
 //GetImage by image id.
-func (i ImageService) GetImage(id string) (string, *models.Error) {
+func (i ImageService) GetImage(id string) (string, *domain.Error) {
 	img, err := i.provider.GetImage(id)
 	if err != nil {
 
 		if err.Error() == provider.ImageNotFoundErr {
-			return "", &models.Error{
+			return "", &domain.Error{
 				Error:   err,
 				Message: fmt.Sprintf("%s %s - %s", "error getting image with id", id, err.Error()),
 				Code:    404,
 			}
 		}
 
-		return "", &models.Error{
+		return "", &domain.Error{
 			Error:   err,
 			Message: fmt.Sprintf("%s %s", "error getting image with id", id),
 			Code:    500,
-			Name:    models.ServerErr,
+			Name:    domain.ServerErr,
 		}
 	}
 
