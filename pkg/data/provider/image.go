@@ -9,12 +9,13 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"mime/multipart"
 	"os"
 	"time"
 )
 
 const (
-	relativePath     = "./static/images/"
+	relativePath     = "/static/images/"
 	ImageNotFoundErr = "image not found in storage"
 )
 
@@ -41,7 +42,10 @@ func NewImageProvider() IImageDataProvider {
 //It returns an identifier that can be used to retrieve the image.
 func (idp ImageDataProvider) SaveImage(img *domain.ImageFile) (string, error) {
 	//rename file and store it
-	if _, err := saveImage(img); err != nil {
+	img.Header.Filename = fmt.Sprintf("%d_%s", time.Now().UnixMilli(), img.Header.Filename)
+	fPath := relativePath + img.Header.Filename
+
+	if _, err := copyImage(fPath, img.Content); err != nil {
 		return "", err
 	}
 	//create an ImageID
@@ -56,18 +60,15 @@ func (idp ImageDataProvider) SaveImage(img *domain.ImageFile) (string, error) {
 	return imageId, nil
 }
 
-func saveImage(img *domain.ImageFile) (bool, error) {
-	img.Header.Filename = fmt.Sprintf("%d_%s", time.Now().UnixMilli(), img.Header.Filename)
-	rename := relativePath + img.Header.Filename
-
-	f, err := os.OpenFile(rename, os.O_WRONLY|os.O_CREATE, 0666) // read&write mode
+func copyImage(fn string, content multipart.File) (bool, error) {
+	f, err := os.OpenFile(fn, os.O_WRONLY|os.O_CREATE, 0666) // read&write mode
 	if err != nil {
 		log.Println("error saving image in data provider", err)
 		return false, err
 	}
 	defer f.Close()
-	if _, err = io.Copy(f, img.Content); err != nil {
-		log.Println("error saving image in data provider", err)
+	if _, err = io.Copy(f, content); err != nil {
+		log.Println("error copying content in data provider", err)
 		return false, err
 	}
 	return true, nil
