@@ -10,7 +10,7 @@ import (
 //entities that make use of it.
 type IImageService interface {
 	UploadImage(img *domain.ImageFile) (string, *domain.Error)
-	GetImage(id string) (string, *domain.Error)
+	GetImage(id string) ([]byte, *domain.Error)
 }
 
 type ImageService struct {
@@ -30,7 +30,7 @@ func (i ImageService) UploadImage(img *domain.ImageFile) (string, *domain.Error)
 	if err != nil {
 		return "", &domain.Error{
 			Error:   err,
-			Message: fmt.Sprintf("%s %s", "error saving image", img.Header.Filename),
+			Message: fmt.Sprintf("%s %s", "error saving image", img.FileName),
 			Code:    500,
 			Name:    domain.ServerErr,
 		}
@@ -39,19 +39,19 @@ func (i ImageService) UploadImage(img *domain.ImageFile) (string, *domain.Error)
 }
 
 //GetImage by image id.
-func (i ImageService) GetImage(id string) (string, *domain.Error) {
+func (i ImageService) GetImage(id string) ([]byte, *domain.Error) {
 	img, err := i.provider.GetImage(id)
 	if err != nil {
 
 		if err.Error() == provider.ImageNotFoundErr {
-			return "", &domain.Error{
+			return []byte{}, &domain.Error{
 				Error:   err,
 				Message: fmt.Sprintf("%s %s - %s", "error getting image with id", id, err.Error()),
 				Code:    404,
 			}
 		}
 
-		return "", &domain.Error{
+		return []byte{}, &domain.Error{
 			Error:   err,
 			Message: fmt.Sprintf("%s %s", "error getting image with id", id),
 			Code:    500,

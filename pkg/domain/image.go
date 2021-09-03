@@ -3,13 +3,13 @@ package domain
 import "mime/multipart"
 
 type ImageFile struct {
-	Header *multipart.FileHeader
+	FileName string
 	Content multipart.File
 }
 
-func NewImageFile(h *multipart.FileHeader, c multipart.File) *ImageFile{
+func NewImageFile(fn string, c multipart.File) *ImageFile{
 	return &ImageFile{
-		Header:  h,
+		FileName:  fn,
 		Content: c,
 	}
 }

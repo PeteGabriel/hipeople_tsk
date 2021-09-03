@@ -1,11 +1,8 @@
 package provider
 
 import (
-	"fmt"
 	"hipeople_task/pkg/domain"
-	"log"
 	"mime/multipart"
-	"os"
 	"testing"
 )
 
@@ -17,7 +14,7 @@ func TestSaveImage(t *testing.T){
 	}
 
 	img := &domain.ImageFile{
-		Header: fh,
+		FileName: fh.Filename,
 		Content: nil,
 	}
 	prov := NewImageProvider()

@@ -15,7 +15,9 @@ const (
 	jsonMediaType        = "application/json"
 	problemJsonMediaType = "application/problem+json"
 	mediaType            = "Content-Type"
+	imageMediaType       = "image/*"
 	fileSizeLimit        = 1024 * 1024
+	getImgRouteRegex     = `/api/image/[0-9a-z]+$`
 )
 
 //Upload an image
@@ -52,7 +54,7 @@ func (a App) Upload() http.Handler {
 		}
 		defer file.Close()
 
-		imgId, upErr := a.imgService.UploadImage(domain.NewImageFile(handler, file))
+		imgId, upErr := a.imgService.UploadImage(domain.NewImageFile(handler.Filename, file))
 		if upErr != nil {
 			log.Println(fmt.Sprintf("%s - %s", "error uploading received file", upErr.Error.Error()))
 			log.Println(fmt.Sprintf("%s - %d - %s", upErr.Name, upErr.Code, upErr.Message))
@@ -98,7 +100,7 @@ func (a App) GetImage() http.Handler {
 		}
 
 		//validate info coming from the url path
-		if match, _ := regexp.MatchString(`/api/image/[0-9a-z]+$`, r.URL.Path); !match {
+		if match, _ := regexp.MatchString(getImgRouteRegex, r.URL.Path); !match {
 			log.Println("Pattern not matched. Image not found.")
 			ptrnErr := responses.ErrProblem{
 				Title:    "image not found",
@@ -131,13 +133,10 @@ func (a App) GetImage() http.Handler {
 			return
 		}
 
-		w.Header().Set(mediaType, jsonMediaType)
-		w.WriteHeader(http.StatusCreated)
-		res, marshalErr := json.Marshal(responses.GetImageResponse{Image: content})
-		if marshalErr != nil {
-			// handle error
-		}
-		w.Write(res) //todo handle error
+		w.Header().Set(mediaType, imageMediaType)
+		w.WriteHeader(http.StatusOK)
+		// Write the image to the response.
+		w.Write(content)
 	})
 }
 

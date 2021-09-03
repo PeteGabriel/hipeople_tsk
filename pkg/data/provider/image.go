@@ -2,7 +2,6 @@ package provider
 
 import (
 	"crypto/sha256"
-	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"hipeople_task/pkg/domain"
@@ -11,6 +10,7 @@ import (
 	"log"
 	"mime/multipart"
 	"os"
+	"path/filepath"
 	"time"
 )
 
@@ -23,7 +23,7 @@ const (
 //entities that make use of it.
 type IImageDataProvider interface {
 	SaveImage(img *domain.ImageFile) (string, error)
-	GetImage(imgId string) (string, error)
+	GetImage(imgId string) ([]byte, error)
 }
 
 type ImageDataProvider struct {
@@ -42,8 +42,11 @@ func NewImageProvider() IImageDataProvider {
 //It returns an identifier that can be used to retrieve the image.
 func (idp ImageDataProvider) SaveImage(img *domain.ImageFile) (string, error) {
 	//rename file and store it
-	img.Header.Filename = fmt.Sprintf("%d_%s", time.Now().UnixMilli(), img.Header.Filename)
-	fPath := relativePath + img.Header.Filename
+	img.FileName = fmt.Sprintf("%d_%s", time.Now().UnixMilli(), img.FileName)
+	fPath, err := buildFilePath(img.FileName)
+	if err != nil {
+		return "", err
+	}
 
 	if _, err := copyImage(fPath, img.Content); err != nil {
 		return "", err
@@ -54,8 +57,8 @@ func (idp ImageDataProvider) SaveImage(img *domain.ImageFile) (string, error) {
 		return "", err
 	}
 
-	//map id to image
-	idp.dataSource[imageId] = img.Header.Filename
+	//map id to image file path
+	idp.dataSource[imageId] = fPath
 
 	return imageId, nil
 }
@@ -74,13 +77,22 @@ func copyImage(fn string, content multipart.File) (bool, error) {
 	return true, nil
 }
 
+func buildFilePath(filename string) (string, error){
+	wd, err := os.Getwd()
+	if err != nil {
+		log.Println(err)
+		return "", err
+	}
+	return filepath.Join(wd, relativePath, filename), nil
+}
+
 func createImageId(img *domain.ImageFile) (string, error) {
 	hashFn := sha256.New()
 	if _, err := io.Copy(hashFn, img.Content); err != nil {
 		log.Println("error hashing image", err)
 		return "", err
 	}
-	if _, err := hashFn.Write([]byte(img.Header.Filename)); err != nil { //add the file name to add more entropy
+	if _, err := hashFn.Write([]byte(img.FileName)); err != nil { //add the file name to add more entropy
 		log.Println("error hashing image", err)
 		return "", err
 	}
@@ -91,20 +103,20 @@ func createImageId(img *domain.ImageFile) (string, error) {
 //GetImage by given image ID. Check if given ID is mapped to any file name.
 //If so, convert the contents to base64 and return it.
 //If not, an error is returned saying that image could not be found.
-func (idp ImageDataProvider) GetImage(imgId string) (string, error) {
-	imgName := idp.dataSource[imgId]
+func (idp ImageDataProvider) GetImage(imgId string) ([]byte, error) {
+	fPath := idp.dataSource[imgId]
 
-	if imgName == "" {
+	if fPath == "" {
 		err := fmt.Errorf("%s", ImageNotFoundErr)
 		log.Println(err)
-		return "", err
+		return []byte{}, err
 	}
 
-	bytes, err := ioutil.ReadFile(relativePath + imgName)
+	bytes, err := ioutil.ReadFile(fPath)
 	if err != nil {
 		log.Println(err)
-		return "", err
+		return []byte{}, err
 	}
 
-	return base64.StdEncoding.EncodeToString(bytes), nil
+	return bytes, nil
 }
