@@ -30,9 +30,9 @@ func (a App) configureRoutes() {
 func (a App) Start() {
 	a.configureRoutes()
 
-	err := http.ListenAndServe(":"+a.settings.Port, nil)
-	if err != nil {
+	log.Printf("starting server at %s:%s\n", a.settings.Host, a.settings.Port)
+
+	if err := http.ListenAndServe(":"+a.settings.Port, nil); err != nil {
 		log.Fatal("error initiating web server:", err)
 	}
-	log.Printf("%s %s\n", "Listening at port", a.settings.Port)
 }
