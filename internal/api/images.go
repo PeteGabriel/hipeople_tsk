@@ -40,16 +40,10 @@ func (a App) Upload() http.Handler {
 			writeProblemJson(w, probJson)
 			return
 		}
+
 		file, handler, err := r.FormFile("uploadfile")
 		if err != nil {
 			log.Println(fmt.Sprintf("%s - %s", "error receiving file to upload", err.Error()))
-			notReceivedImgErr := responses.ErrProblem{
-				Title:    "image not received",
-				Detail:   "An image must be provided.",
-				Status:   http.StatusBadRequest,
-				Instance: r.URL.Path,
-			}
-			writeProblemJson(w, notReceivedImgErr)
 			return
 		}
 		defer file.Close()
@@ -150,3 +144,5 @@ func writeProblemJson(w http.ResponseWriter, prob responses.ErrProblem) {
 	}
 	w.Write(res) //todo handle error
 }
+
+

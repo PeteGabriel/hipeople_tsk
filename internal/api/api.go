@@ -22,7 +22,10 @@ func New(cfg *config.Settings) *App {
 
 func (a App) configureRoutes() {
 	//upload route
-	http.Handle("/api/image", middleware.Log(a.Upload()))
+	http.Handle("/api/image",
+		middleware.Log(
+			middleware.CheckReceivedContent(
+				middleware.ValidateContentType(a.Upload()))))
 	//get image route
 	http.Handle("/api/image/", middleware.Log(a.GetImage()))
 }
