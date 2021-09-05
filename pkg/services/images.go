@@ -26,7 +26,7 @@ func New() IImageService {
 
 //UploadImage uploads an image described by the image file given as parameter.
 func (i ImageService) UploadImage(img *domain.ImageFile) (string, *domain.Error) {
-	imgId, err := i.provider.SaveImage(img)
+	imgId, err := i.provider.SaveImage(img.FileName, img.Content)
 	if err != nil {
 		return "", &domain.Error{
 			Error:   err,

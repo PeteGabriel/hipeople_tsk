@@ -2,11 +2,11 @@ package provider
 
 import (
 	"hipeople_task/pkg/domain"
-	mock "hipeople_task/pkg/mocks/data/provider"
 	"log"
 	"mime/multipart"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -19,7 +19,7 @@ func TestSaveImage(t *testing.T){
 
 	img := &domain.ImageFile{
 		FileName: fh.Filename,
-		Content: &mock.File{},
+		Content: strings.NewReader("dummy content"),
 	}
 
 	wd, err := os.Getwd()
@@ -31,7 +31,7 @@ func TestSaveImage(t *testing.T){
 		storageLocation: filepath.Join(wd, "../../../", relativePath),
 	}
 
-	imgId, err := prov.SaveImage(img)
+	imgId, err := prov.SaveImage(img.FileName, img.Content)
 
 	if err != nil {
 		t.Errorf("error not nil: %s", err.Error())

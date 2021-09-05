@@ -1,15 +1,15 @@
 package domain
 
-import "mime/multipart"
+import "io"
 
 type ImageFile struct {
 	FileName string
-	Content multipart.File
+	Content io.Reader
 }
 
-func NewImageFile(fn string, c multipart.File) *ImageFile{
+func NewImageFile(fn string, buf io.Reader) *ImageFile{
 	return &ImageFile{
 		FileName:  fn,
-		Content: c,
+		Content: buf,
 	}
 }
