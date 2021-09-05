@@ -2,7 +2,11 @@ package provider
 
 import (
 	"hipeople_task/pkg/domain"
+	mock "hipeople_task/pkg/mocks/data/provider"
+	"log"
 	"mime/multipart"
+	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -15,9 +19,17 @@ func TestSaveImage(t *testing.T){
 
 	img := &domain.ImageFile{
 		FileName: fh.Filename,
-		Content: nil,
+		Content: &mock.File{},
 	}
-	prov := NewImageProvider()
+
+	wd, err := os.Getwd()
+	if err != nil {
+		log.Fatalln(err)
+	}
+	prov := &ImageDataProvider{
+		dataSource:      make(map[string]string),
+		storageLocation: filepath.Join(wd, "../../../", relativePath),
+	}
 
 	imgId, err := prov.SaveImage(img)
 
@@ -28,6 +40,12 @@ func TestSaveImage(t *testing.T){
 
 	if len(imgId) == 0 {
 		t.Errorf("unexpected image id: %s", imgId)
+		return
+	}
+
+	//assert internal mapping
+	if len(prov.dataSource) <= 0 {
+		t.Errorf("unexpected mapping len: %d", len(prov.dataSource))
 		return
 	}
 }

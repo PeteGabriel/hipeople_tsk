@@ -27,13 +27,19 @@ type IImageDataProvider interface {
 }
 
 type ImageDataProvider struct {
-	dataSource map[string]string //[imageId] -> image name
+	storageLocation string
+	dataSource      map[string]string //[imageId] -> image name
 }
 
 //NewImageProvider creates a new instance of IImageDataProvider
 func NewImageProvider() IImageDataProvider {
+	wd, err := os.Getwd()
+	if err != nil {
+		log.Fatalln(err) //can progress if this is not possible
+	}
 	return &ImageDataProvider{
-		dataSource: make(map[string]string),
+		dataSource:      make(map[string]string),
+		storageLocation: filepath.Join(wd, relativePath),
 	}
 }
 
@@ -43,10 +49,7 @@ func NewImageProvider() IImageDataProvider {
 func (idp ImageDataProvider) SaveImage(img *domain.ImageFile) (string, error) {
 	//rename file and store it
 	img.FileName = fmt.Sprintf("%d_%s", time.Now().UnixMilli(), img.FileName)
-	fPath, err := buildFilePath(img.FileName)
-	if err != nil {
-		return "", err
-	}
+	fPath := idp.buildFilePath(img.FileName)
 
 	if _, err := copyImage(fPath, img.Content); err != nil {
 		return "", err
@@ -77,13 +80,8 @@ func copyImage(fn string, content multipart.File) (bool, error) {
 	return true, nil
 }
 
-func buildFilePath(filename string) (string, error){
-	wd, err := os.Getwd()
-	if err != nil {
-		log.Println(err)
-		return "", err
-	}
-	return filepath.Join(wd, relativePath, filename), nil
+func (idp ImageDataProvider) buildFilePath(filename string) string{
+	return filepath.Join(idp.storageLocation, filename)
 }
 
 func createImageId(img *domain.ImageFile) (string, error) {
