@@ -21,19 +21,20 @@ const (
 )
 
 //Upload an image
-func (a App) Upload() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+func (a App) Upload() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
 
 		r.Body = http.MaxBytesReader(w, r.Body, fileSizeLimit) //limit the size of the request body
+		//ask for multipart to be parsed against a certain limit size.
 		if err := r.ParseMultipartForm(fileSizeLimit); err != nil {
-			log.Println("file bigger than 1MB: ", err)
+			log.Println("error parsing multipart form: ", err)
 			probJson := responses.ErrProblem{
 				Title:    "image not uploaded",
-				Detail:   "Image not uploaded. File is bigger than 1MB.",
+				Detail:   "Image not uploaded. Check file size (1MB max) or upload form.",
 				Status:   http.StatusBadRequest,
 				Instance: r.URL.Path,
 			}
@@ -41,7 +42,7 @@ func (a App) Upload() http.Handler {
 			return
 		}
 
-		file, handler, err := r.FormFile("uploadfile")
+		file, handler, err := r.FormFile("upload_file")
 		if err != nil {
 			log.Println(fmt.Sprintf("%s - %s", "error receiving file to upload", err.Error()))
 			return
@@ -53,25 +54,9 @@ func (a App) Upload() http.Handler {
 			log.Println(fmt.Sprintf("%s - %s", "error uploading received file", upErr.Error.Error()))
 			log.Println(fmt.Sprintf("%s - %d - %s", upErr.Name, upErr.Code, upErr.Message))
 
-			var probJson responses.ErrProblem
-			if upErr.Name == domain.ServerErr {
-				probJson = responses.ErrProblem{
-					Title:    "image not uploaded",
-					Detail:   upErr.Message,
-					Status:   http.StatusInternalServerError,
-					Instance: r.URL.Path,
-				}
-			} else {
-				//TODO check if theres another possibility than ServerSideError
-				probJson = responses.ErrProblem{
-					Title:    "image not uploaded",
-					Detail:   upErr.Message,
-					Status:   http.StatusBadRequest,
-					Instance: r.URL.Path,
-				}
-			}
-
-			writeProblemJson(w, probJson)
+			w.Header().Set(mediaType, "text/plain")
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte{})
 			return
 		}
 
@@ -79,15 +64,15 @@ func (a App) Upload() http.Handler {
 		w.WriteHeader(http.StatusCreated)
 		res, err := json.Marshal(responses.UploadResponse{ImageId: imgId})
 		if err != nil {
-			// handle error
+			log.Println("error marshaling uploaded image response", err)
 		}
-		w.Write(res) //todo handle error
-	})
+		w.Write(res)
+	}
 }
 
 //GetImage retrieves an image for a given ID.
-func (a App) GetImage() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+func (a App) GetImage() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "GET" {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
@@ -113,7 +98,7 @@ func (a App) GetImage() http.Handler {
 			if err.Name == domain.ServerErr {
 				log.Println(fmt.Sprintf("%s - %d - %s", err.Name, err.Code, err.Message))
 				w.WriteHeader(http.StatusInternalServerError)
-				w.Write([]byte{}) //TODO recheck this
+				w.Write([]byte{})
 				return
 			}
 
@@ -127,11 +112,11 @@ func (a App) GetImage() http.Handler {
 			return
 		}
 
+		// Send image as response
 		w.Header().Set(mediaType, imageMediaType)
 		w.WriteHeader(http.StatusOK)
-		// Write the image to the response.
 		w.Write(content)
-	})
+	}
 }
 
 func writeProblemJson(w http.ResponseWriter, prob responses.ErrProblem) {
@@ -140,9 +125,9 @@ func writeProblemJson(w http.ResponseWriter, prob responses.ErrProblem) {
 
 	res, err := json.Marshal(prob)
 	if err != nil {
-		// TODO handle error
+		log.Println("error marshaling uploaded image response", err)
 	}
-	w.Write(res) //todo handle error
+	w.Write(res)
 }
 
 

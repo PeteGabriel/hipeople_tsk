@@ -5,7 +5,3 @@ package responses
 type UploadResponse struct {
 	ImageId string `json:"image_id"`
 }
-
-type GetImageResponse struct {
-	Image string `json:"image"`
-}

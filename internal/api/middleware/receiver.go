@@ -8,10 +8,10 @@ import (
 	"net/http"
 )
 
-//CheckReceivedContent check the existence of a file to upload
-func CheckReceivedContent(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		file, _, err := r.FormFile("uploadfile")
+//CheckReceivedContent check the existence of a file to upload in the request.
+func CheckReceivedContent(next http.Handler) http.HandlerFunc{
+	return func(w http.ResponseWriter, r *http.Request) {
+		file, _, err := r.FormFile("upload_file")
 		if err != nil {
 			log.Println(fmt.Sprintf("%s - %s", "error receiving file to upload", err.Error()))
 			notReceivedImgErr := responses.ErrProblem{
@@ -25,13 +25,15 @@ func CheckReceivedContent(next http.Handler) http.Handler {
 
 			res, err := json.Marshal(notReceivedImgErr)
 			if err != nil {
-				// TODO handle error
+				log.Println("error marshaling response in receiver middleware: ", err)
 			}
-			w.Write(res) //todo handle error
+			w.Write(res)
 			return
 		}
 		defer file.Close()
 
-		next.ServeHTTP(w, r)
-	})
+		if next != nil {
+			next.ServeHTTP(w, r)
+		}
+	}
 }

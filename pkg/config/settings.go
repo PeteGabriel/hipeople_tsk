@@ -2,6 +2,8 @@ package config
 
 import "flag"
 
+//Settings represents the configuration that we can provide
+//from the outside in order to run the application in different ways.
 type Settings struct {
 	Host string
 	Port string

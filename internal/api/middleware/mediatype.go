@@ -12,18 +12,18 @@ import (
 
 //ValidateContentType validates the file content type to check if user is trying to upload
 //something else than an image.
-func ValidateContentType(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+func ValidateContentType(next http.Handler) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 
-		file, handler, err := r.FormFile("uploadfile")
+		file, handler, err := r.FormFile("upload_file")
 		if err != nil {
 			log.Println(fmt.Sprintf("%s - %s", "error receiving file to upload", err.Error()))
 			return
 		}
 		defer file.Close()
 
-		//check for png/jpeg content-type
-		if !isFileExtensionAllowed(handler) {
+		//check for image/* content-type
+		if !isMediatypeAllowed(handler) {
 			log.Println("file type not valid for upload")
 			fileExtensionsInvalidErr := responses.ErrProblem{
 				Title:    "file received is invalid",
@@ -36,16 +36,19 @@ func ValidateContentType(next http.Handler) http.Handler {
 
 			res, err := json.Marshal(fileExtensionsInvalidErr)
 			if err != nil {
-				// TODO handle error
+				log.Println("error marshaling response in mediatype middleware: ", err)
 			}
-			w.Write(res) //todo handle error
+			w.Write(res)
 			return
 		}
-		next.ServeHTTP(w, r)
-	})
+
+		if next != nil {
+			next.ServeHTTP(w, r)
+		}
+	}
 }
 
-func isFileExtensionAllowed(h *multipart.FileHeader) bool {
+func isMediatypeAllowed(h *multipart.FileHeader) bool {
 	if len(h.Header["Content-Type"]) > 0 {
 		contentType := h.Header["Content-Type"][0]
 		return strings.HasPrefix(contentType, "image/")

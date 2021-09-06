@@ -44,15 +44,18 @@ func NewImageProvider() IImageDataProvider {
 //SaveImage saves the image file given as parameter for retrieval later on.
 //Renames the file to allow duplicates to be uploaded at any given time.
 //It returns an identifier that can be used to retrieve the image.
+//The identifier allows the mapping to be done between user and image uploaded by him.
+//This identifier is the result of a hash function between some parts related to the file and the upload itself.
 func (idp ImageDataProvider) SaveImage(fName string, img io.Reader) (string, error) {
 	//rename file and store it
-	fPath := idp.buildFilePath(fmt.Sprintf("%d_%s", time.Now().UnixMilli(), fName))
+	rename := fmt.Sprintf("%d_%s", time.Now().UnixMilli(), fName)
+	fPath := idp.buildFilePath(rename)
 
 	if _, err := copyImage(fPath, img); err != nil {
 		return "", err
 	}
 	//create an ImageID
-	imageId, err := createImageId(fName, img)
+	imageId, err := createImageId(rename, img)
 	if err != nil {
 		return "", err
 	}

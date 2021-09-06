@@ -10,7 +10,6 @@ Documentation on the entry points of this web API.
 
 ### Upload an image
 
-
 Upload an image. An identifier is returned to be used later on when retrieving the image. 
 Size of image is limited to 1MB.
 
@@ -29,8 +28,8 @@ Size of image is limited to 1MB.
 
 * **Data Params**
 
-  * **Multipart Form:** uploadfile <br />
-    **Content:** a binary file (up to 1MB)
+  * **Multipart Form:** upload_file <br />
+    **Content:** a file (up to 1MB)
 
 * **Headers**
 
@@ -39,16 +38,28 @@ Size of image is limited to 1MB.
 * **Success Response:**
 
     * **Code:** 201 <br />
-      **Content-Type:** text/plain; charset=utf-8 <br />
-      **Content:** `{
+      **Content-Type:** application/json <br />
+      **Example:** `{
       "image_id": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
       }`
 
 * **Error Response:**
 
     * **Code:** 404 NOT FOUND <br />
-      **Content:** `{ error : "User doesn't exist" }`
+      **Content-Type:** application/problem+json <br />
+      **Example:** 
+      ``` 
+      {
+        "title": "file received is invalid",
+        "status": 400,
+        "detail": "File type not valid for upload. File received must be an image.",
+        "instance": "/api/image"
+      }
+      ```
 
+    * **Code:** 500 SERVER ERROR <br />
+      **Content-Type:** text/plain <br />
+      
 
 Example using cURL:
 
@@ -77,7 +88,7 @@ Get an image previously uploaded. The user should use the identifier given when 
 
 * **URL Params**
 
-  None
+  ```{id}```: Id of the image to retrieve.
 
 * **Data Params**
 
@@ -86,7 +97,10 @@ Get an image previously uploaded. The user should use the identifier given when 
 * **Success Response:**
 
     * **Code:** 200 <br />
-      **Content:** `{ id : 12 }`
+      **Content-Type:**	image/* <br />
+      **Content:** an array of bytes
+    
+
 
 * **Error Response:**
 
@@ -97,11 +111,13 @@ Get an image previously uploaded. The user should use the identifier given when 
       {
         "title": "image not found",
         "status": 404,
-        "detail": "error getting image with id 213124125235325 - image not found",
-        "instance": "/api/image/213124125235325"
+        "detail": "error getting image with id 974c2123adfc79c45b4dad7fc2740f4c1bbea0e90ff - image not found in storage",
+        "instance": "/api/image/974c2123adfc79c45b4dad7fc2740f4c1bbea0e90ff"
       }
       ```
 
+    * **Code:** 500 SERVER ERROR <br />
+      **Content-Type:** text/plain <br />
 
 Example using cURL:
 
@@ -112,12 +128,22 @@ curl --request GET \
 
 
 
-## how to run the project:
+## How to run the project:
 
 Using the makefile:
 
-``` make run ```
+``` 
+make build
+make run 
+```
 
 Using the Dockerfile:
 
 ``` docker build --tag hipeople_tsk . && docker run -p 4002:4002 hipeople_tsk ```
+
+Running tests:
+
+``` 
+make build
+make test 
+```
