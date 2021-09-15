@@ -1,6 +1,4 @@
-# HiPeople Technical Task
-
-A web API that allows users to upload images and access them later. 
+Web API that allows users to upload images and access them later. 
 
 
 
